@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI/UX Enterprise Apple-Style"
+  short_description: "Enterprise UX com clareza inspirada na Apple"
+  default_prompt: "Use $ui-ux-enterprise para redesenhar este produto enterprise com linguagem visual premium, hierarquia clara e acessibilidade forte."

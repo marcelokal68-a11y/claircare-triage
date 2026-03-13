@@ -91,6 +91,20 @@ export default function App() {
 
   const hasConsent = consents.health && consents.voice && consents.privacy;
   const hasResult = Boolean(result);
+  const progressPct = done
+    ? 100
+    : hasResult
+      ? Math.max(15, Math.min(90, 100 - (result?.questions_remaining_estimate || 0) * 10))
+      : 0;
+  const readinessText = !user
+    ? 'Aguardando login'
+    : !hasConsent
+      ? 'Aguardando LGPD'
+      : !hasResult
+        ? 'Pronto para triagem'
+        : done
+          ? 'Triagem concluida'
+          : 'Triagem em andamento';
 
   async function persistHistoryRemote(nextResult) {
     if (!user?.id) return;
@@ -341,9 +355,12 @@ export default function App() {
 
   return (
     <div className="page">
-      <div className="glow" />
+      <div className="orb orb-a" />
+      <div className="orb orb-b" />
+
       <header className="topbar">
-        <div>
+        <div className="brand-wrap">
+          <span className="brand-badge">Enterprise Clinical Desk</span>
           <h1>{t.brand}</h1>
           <p>{t.subtitle}</p>
         </div>
@@ -387,8 +404,31 @@ export default function App() {
         {result?.urgency === 'emergency' && <div className="emergency">{t.emergencyBanner}</div>}
       </section>
 
+      <section className="status-grid">
+        <article className="status-card">
+          <span>Identidade</span>
+          <strong>{user ? 'Verificada' : 'Nao autenticada'}</strong>
+          <p>{user ? getUserEmail(user) : 'Login Google pendente'}</p>
+        </article>
+        <article className="status-card">
+          <span>Conformidade LGPD</span>
+          <strong>{hasConsent ? 'Aprovada' : 'Pendente'}</strong>
+          <p>{hasConsent ? 'Consentimentos completos' : 'Aceite os 3 consentimentos obrigatorios'}</p>
+        </article>
+        <article className="status-card">
+          <span>Readiness</span>
+          <strong>{readinessText}</strong>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+        </article>
+      </section>
+
       <section className="panel wizard">
-        <h2>{t.wizardTitle}</h2>
+        <div className="panel-header">
+          <h2>{t.wizardTitle}</h2>
+          <span className="chip">{Math.round(progressPct)}% flow</span>
+        </div>
         <div className="wizard-steps">
           <span className={user ? 'step done' : 'step'}>1. {t.stepLogin}</span>
           <span className={hasConsent ? 'step done' : 'step'}>2. {t.stepConsent}</span>
@@ -417,102 +457,113 @@ export default function App() {
           </div>
         )}
 
-        {user && (
-          <>
-            <div className="consent-box">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={consents.health}
-                  onChange={(e) => setConsents((prev) => ({ ...prev, health: e.target.checked }))}
-                />
-                <span>{t.consentHealth}</span>
-              </label>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={consents.voice}
-                  onChange={(e) => setConsents((prev) => ({ ...prev, voice: e.target.checked }))}
-                />
-                <span>{t.consentVoice}</span>
-              </label>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={consents.privacy}
-                  onChange={(e) => setConsents((prev) => ({ ...prev, privacy: e.target.checked }))}
-                />
-                <span>{t.consentPrivacy}</span>
-              </label>
-              <p className="hint">{t.consentHint}</p>
-            </div>
-
-            <div className="panel-lite">
-              <h3>{t.startTitle}</h3>
-              <p className="hint">{t.startHint}</p>
-              {!currentQuestion && (
-                <textarea
-                  value={initialSymptoms}
-                  onChange={(e) => setInitialSymptoms(e.target.value)}
-                  placeholder={t.placeholder}
-                  rows={4}
-                />
-              )}
-
-              {currentQuestion && (
-                <div className="question-block">
-                  <div className="question">{currentQuestion}</div>
-                  <textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder={t.placeholder}
-                    rows={3}
+        <div className="wizard-body">
+          {user && (
+            <div className="wizard-main">
+              <div className="consent-box">
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={consents.health}
+                    onChange={(e) => setConsents((prev) => ({ ...prev, health: e.target.checked }))}
                   />
-                </div>
-              )}
-
-              <div className="voice-box">
-                <p>{t.voiceHint}</p>
-                <div className="actions">
-                  {!isRecording && (
-                    <button className="ghost" onClick={startRecording} disabled={voiceLoading}>
-                      {t.recordButton}
-                    </button>
-                  )}
-                  {isRecording && (
-                    <button className="ghost" onClick={stopRecording}>
-                      {t.stopButton}
-                    </button>
-                  )}
-                  <button className="primary" onClick={transcribeAudio} disabled={!recordedAudio || voiceLoading}>
-                    {voiceLoading ? '...' : t.transcribeButton}
-                  </button>
-                </div>
+                  <span>{t.consentHealth}</span>
+                </label>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={consents.voice}
+                    onChange={(e) => setConsents((prev) => ({ ...prev, voice: e.target.checked }))}
+                  />
+                  <span>{t.consentVoice}</span>
+                </label>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={consents.privacy}
+                    onChange={(e) => setConsents((prev) => ({ ...prev, privacy: e.target.checked }))}
+                  />
+                  <span>{t.consentPrivacy}</span>
+                </label>
+                <p className="hint">{t.consentHint}</p>
               </div>
 
-              <div className="actions">
+              <div className="panel-lite">
+                <h3>{t.startTitle}</h3>
+                <p className="hint">{t.startHint}</p>
                 {!currentQuestion && (
-                  <button className="primary" onClick={handleStart} disabled={loading || !hasConsent}>
-                    {loading ? '...' : t.startButton}
-                  </button>
+                  <textarea
+                    value={initialSymptoms}
+                    onChange={(e) => setInitialSymptoms(e.target.value)}
+                    placeholder={t.placeholder}
+                    rows={4}
+                  />
                 )}
-                {currentQuestion && !done && (
-                  <button className="primary" onClick={handleAnswer} disabled={loading}>
-                    {loading ? '...' : t.answerButton}
-                  </button>
-                )}
+
                 {currentQuestion && (
-                  <button className="ghost" onClick={handleFinish} disabled={loading}>
-                    {loading ? '...' : t.finishButton}
-                  </button>
+                  <div className="question-block">
+                    <div className="question">{currentQuestion}</div>
+                    <textarea
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      placeholder={t.placeholder}
+                      rows={3}
+                    />
+                  </div>
                 )}
-                <button className="ghost" onClick={handleReset}>
-                  {t.resetButton}
-                </button>
+
+                <div className="voice-box">
+                  <p>{t.voiceHint}</p>
+                  <div className="actions">
+                    {!isRecording && (
+                      <button className="ghost" onClick={startRecording} disabled={voiceLoading}>
+                        {t.recordButton}
+                      </button>
+                    )}
+                    {isRecording && (
+                      <button className="ghost" onClick={stopRecording}>
+                        {t.stopButton}
+                      </button>
+                    )}
+                    <button className="primary" onClick={transcribeAudio} disabled={!recordedAudio || voiceLoading}>
+                      {voiceLoading ? '...' : t.transcribeButton}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="actions">
+                  {!currentQuestion && (
+                    <button className="primary" onClick={handleStart} disabled={loading || !hasConsent}>
+                      {loading ? '...' : t.startButton}
+                    </button>
+                  )}
+                  {currentQuestion && !done && (
+                    <button className="primary" onClick={handleAnswer} disabled={loading}>
+                      {loading ? '...' : t.answerButton}
+                    </button>
+                  )}
+                  {currentQuestion && (
+                    <button className="ghost" onClick={handleFinish} disabled={loading}>
+                      {loading ? '...' : t.finishButton}
+                    </button>
+                  )}
+                  <button className="ghost" onClick={handleReset}>
+                    {t.resetButton}
+                  </button>
+                </div>
               </div>
             </div>
-          </>
-        )}
+          )}
+
+          <aside className="wizard-side">
+            <h3>Compliance Snapshot</h3>
+            <ul className="compact-list">
+              <li>Retencao automatica de dados: 30 dias</li>
+              <li>Consentimento explicito para voz e dados de saude</li>
+              <li>Resumo focado em apoio clinico, sem diagnostico definitivo</li>
+            </ul>
+          </aside>
+        </div>
 
         {error && <div className="error">{error}</div>}
       </section>
