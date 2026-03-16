@@ -340,6 +340,13 @@ textarea {
   line-height: 1.42;
 }
 
+.signed-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .hint + textarea,
 .hint + .question-block {
   margin-top: 10px;
@@ -423,12 +430,31 @@ button:disabled {
   border: 1px solid var(--line);
 }
 
+.danger {
+  border-color: rgba(255, 143, 143, 0.45);
+  color: #ffd7d7;
+}
+
+.danger:hover {
+  background: rgba(109, 30, 30, 0.35);
+}
+
 .error {
   margin-top: 14px;
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 143, 143, 0.5);
   background: rgba(255, 143, 143, 0.16);
   color: #ffd0d0;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+}
+
+.success {
+  margin-top: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(109, 230, 194, 0.5);
+  background: rgba(109, 230, 194, 0.12);
+  color: #cef9eb;
   padding: 10px 12px;
   font-size: 0.92rem;
 }

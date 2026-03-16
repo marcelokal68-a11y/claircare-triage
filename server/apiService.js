@@ -246,3 +246,33 @@ export async function getHistory(userId) {
   );
   return { items: rows };
 }
+
+export async function deleteHistory(userId) {
+  if (!pgPool) {
+    throw new HttpError(503, 'database_not_configured', 'Database not configured');
+  }
+  await ensureDatabase();
+  if (!userId) {
+    throw new HttpError(400, 'user_id_required', 'user_id is required');
+  }
+
+  const result = await pgPool.query(`delete from triage_history where user_id = $1`, [userId]);
+  return { ok: true, deleted: result.rowCount || 0 };
+}
+
+export async function healthStatus() {
+  const status = {
+    ok: true,
+    service: 'claircare-triage',
+    timestamp: new Date().toISOString(),
+    database: 'not_configured'
+  };
+
+  if (!pgPool) {
+    return status;
+  }
+
+  await ensureDatabase();
+  await pgPool.query('select 1');
+  return { ...status, database: 'ok' };
+}

@@ -54,6 +54,8 @@ export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState(null);
   const [ttsLoading, setTtsLoading] = useState(false);
+  const [deletingData, setDeletingData] = useState(false);
+  const [info, setInfo] = useState('');
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [consents, setConsents] = useState({
@@ -129,6 +131,7 @@ export default function App() {
   async function fetchTriage(payload) {
     setLoading(true);
     setError('');
+    setInfo('');
     try {
       const res = await fetch('/api/triage', {
         method: 'POST',
@@ -150,6 +153,7 @@ export default function App() {
 
   async function handleGoogleSignIn() {
     setError('');
+    setInfo('');
     if (!supabaseEnabled) {
       setError(t.supabaseMissing);
       return;
@@ -173,6 +177,30 @@ export default function App() {
       return;
     }
     handleReset();
+  }
+
+  async function handleDeleteData() {
+    if (!user?.id) return;
+    const confirmed = window.confirm(t.deleteDataConfirm);
+    if (!confirmed) return;
+
+    setDeletingData(true);
+    setError('');
+    setInfo('');
+    try {
+      const res = await fetch(`/api/history?user_id=${encodeURIComponent(user.id)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.message || 'Falha ao excluir dados.');
+      }
+      setInfo(t.deleteDataSuccess);
+    } catch (err) {
+      setError(err.message || 'Falha ao excluir dados.');
+    } finally {
+      setDeletingData(false);
+    }
   }
 
   async function handleStart() {
@@ -451,9 +479,17 @@ export default function App() {
             <p>
               {t.welcome} <strong>{getUserEmail(user)}</strong>
             </p>
-            <button className="ghost" onClick={handleSignOut}>
-              {t.signoutButton}
-            </button>
+            <div className="signed-actions">
+              <button className="ghost" onClick={() => window.open('/privacy.html', '_blank', 'noopener,noreferrer')}>
+                {t.policyButton}
+              </button>
+              <button className="ghost danger" onClick={handleDeleteData} disabled={deletingData}>
+                {deletingData ? '...' : t.deleteDataButton}
+              </button>
+              <button className="ghost" onClick={handleSignOut}>
+                {t.signoutButton}
+              </button>
+            </div>
           </div>
         )}
 
@@ -565,6 +601,7 @@ export default function App() {
           </aside>
         </div>
 
+        {info && <div className="success">{info}</div>}
         {error && <div className="error">{error}</div>}
       </section>
 

@@ -5,6 +5,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import {
+  deleteHistory,
+  healthStatus,
   HttpError,
   ensureDatabase,
   getHistory,
@@ -74,6 +76,30 @@ app.get('/api/history', async (req, res) => {
   try {
     const userId = typeof req.query.user_id === 'string' ? req.query.user_id : '';
     const data = await getHistory(userId);
+    return res.status(200).json(data);
+  } catch (err) {
+    return mapError(err, res);
+  }
+});
+
+app.delete('/api/history', async (req, res) => {
+  try {
+    const userId =
+      typeof req.query.user_id === 'string'
+        ? req.query.user_id
+        : typeof req.body?.user_id === 'string'
+          ? req.body.user_id
+          : '';
+    const data = await deleteHistory(userId);
+    return res.status(200).json(data);
+  } catch (err) {
+    return mapError(err, res);
+  }
+});
+
+app.get('/api/health', async (_req, res) => {
+  try {
+    const data = await healthStatus();
     return res.status(200).json(data);
   } catch (err) {
     return mapError(err, res);
